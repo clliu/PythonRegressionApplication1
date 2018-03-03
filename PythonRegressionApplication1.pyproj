@@ -28,6 +28,8 @@
   <ItemGroup>
     <Content Include="2008_swing_states.csv" />
     <Content Include="Environment Setting.txt" />
+    <Content Include="Wilcoxon Data.xlsx" />
+    <Content Include="WilcoxonData.csv" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in
