@@ -1,0 +1,11 @@
+This file act as a document for how to fix the Python environment in Visual Studio 2017 enterprise.
+
+A few issues we faced when try to install and run Python in VS2017:
+
+1) Can't install Cookiecutter templates:
+	Core issue: Python 3.6 (64 bits) and Anaconda 5.0.0 somehow has issue when installing Cookiecutter templates. 
+	Fix: download and install Python 3.6 (32 bits) and set as default environment before install Cookiecutter templates.
+
+2) Can't compile and run sample program:
+	Core issue: there is a bug in E:\Program Files (x86)\Microsoft Visual Studio\2017\Enterprise\Common7\IDE\Extensions\Microsoft\Python\Core\ptvsd\debugger.py
+	Change from "return '<' + channel + '>'" to "return '<' + self.channel + '>'" at line 2585
