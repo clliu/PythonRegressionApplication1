@@ -65,7 +65,7 @@ if __name__ == '__main__':
     print(wilcoxonData['HT - % diff Car'])
     Wilcoxon_From_ComparedList(wilcoxonData['HT - % diff Car'])
 
-    BS_Size = 1000
+    BS_Size = 10000
     HT_C_BS = np.empty(BS_Size)
     HT_L_BS = np.empty(BS_Size)
 
@@ -76,27 +76,63 @@ if __name__ == '__main__':
     C_HT_BS = np.empty(BS_Size)
 
     for i in range(BS_Size):
-        #HT_C_BS[i] = bootstrap_replicate_ld(wilcoxonData['HT - % diff Car'], Wilcoxon_From_ComparedList)
-        #HT_L_BS[i] = bootstrap_replicate_ld(wilcoxonData['HT - % diff LT'], Wilcoxon_From_ComparedList)
+        HT_C_BS[i] = bootstrap_replicate_ld(wilcoxonData['HT - % diff Car'], Wilcoxon_From_ComparedList)
+        HT_L_BS[i] = bootstrap_replicate_ld(wilcoxonData['HT - % diff LT'], Wilcoxon_From_ComparedList)
 
-        #LT_C_BS[i] = bootstrap_replicate_ld(wilcoxonData['LT - % diff Car'], Wilcoxon_From_ComparedList)
-        #LT_H_BS[i] = bootstrap_replicate_ld(wilcoxonData['LT - % diff HT'], Wilcoxon_From_ComparedList)
+        LT_C_BS[i] = bootstrap_replicate_ld(wilcoxonData['LT - % diff Car'], Wilcoxon_From_ComparedList)
+        LT_H_BS[i] = bootstrap_replicate_ld(wilcoxonData['LT - % diff HT'], Wilcoxon_From_ComparedList)
 
         C_LT_BS[i] = bootstrap_replicate_ld(wilcoxonData['Car - % diff LT'], Wilcoxon_From_ComparedList)
         C_HT_BS[i] = bootstrap_replicate_ld(wilcoxonData['Car - % diff HT'], Wilcoxon_From_ComparedList)
 
+    finalData = pd.DataFrame(HT_C_BS, columns=['z'])
+    finalData['experiment'] = 'Est result better than Car'
+    ltData = pd.DataFrame(HT_L_BS, columns=['z'])
+    ltData['experiment'] = 'Est result better than Light Truck'
+    finalData = finalData.append(ltData)
+    bx = sns.boxplot(x='experiment', y='z', data=finalData)
+    bx.set_xlabel('Compare to different vehicles as baseline')
+    bx.set_title('Heavy Truck Validations (bootstrap 10000)')
+    plt.show()
+
+    finalData = pd.DataFrame(LT_C_BS, columns=['z'])
+    finalData['experiment'] = 'Est result better than Car'
+    ltData = pd.DataFrame(LT_H_BS, columns=['z'])
+    ltData['experiment'] = 'Est result better than Heavy Truck'
+    finalData = finalData.append(ltData)
+    bx = sns.boxplot(x='experiment', y='z', data=finalData)
+    bx.set_xlabel('Estimation better than different vehicle')
+    bx.set_title('Light Truck Validations (bootstrap 10000)')
+    plt.show()
+    
+    finalData = pd.DataFrame(C_LT_BS, columns=['z'])
+    finalData['experiment'] = 'Est result better than Light Truck'
+    ltData = pd.DataFrame(C_HT_BS, columns=['z'])
+    ltData['experiment'] = 'Est result better than Heavy Truck'
+    finalData = finalData.append(ltData)
+    bx = sns.boxplot(x='experiment', y='z', data=finalData)
+    bx.set_xlabel('Estimation better than different vehicle')
+    bx.set_title('Passenger Car Validations (bootstrap 10000)')
+    plt.show()
+    
     #sns.boxplot(data=HT_C_BS)
     #sns.boxplot(data=HT_L_BS)
 
-    #sns.boxplot(data=LT_C_BS)
-    #sns.boxplot(data=LT_H_BS)
+    #f,axes = plt.subplots(1,2)
+    #axes[0].set_title('Estimaton better than Passenger Car basline')
+    #sns.boxplot(data=LT_C_BS, ax=axes[0])
+       
+    #sns.boxplot(data=LT_H_BS, ax=axes[1])
+    #axes[1].set_title('Estimaton better than Heavy Truck basline')
+    #plt.suptitle('Light Truck')
 
     #sns.boxplot(data=C_LT_BS)
-    sns.boxplot(data=C_HT_BS)
+    #sns.boxplot(data=C_HT_BS)
 
-    plt.show()
+    
 
-    #testarray = np.array(range(3)) + 1;
-    #print('{0}, {1}'.format(testarray, testarray.sum()))
+    
+
+
 
 
