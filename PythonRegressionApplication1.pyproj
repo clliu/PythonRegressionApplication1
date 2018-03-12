@@ -28,6 +28,8 @@
   <ItemGroup>
     <Content Include="2008_swing_states.csv" />
     <Content Include="Environment Setting.txt" />
+    <Content Include="selected_result.csv" />
+    <Content Include="vehcileProperies.csv" />
     <Content Include="Wilcoxon Data.xlsx" />
     <Content Include="WilcoxonData.csv" />
   </ItemGroup>

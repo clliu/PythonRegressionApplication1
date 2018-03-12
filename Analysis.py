@@ -59,13 +59,65 @@ def bootstrap_replicate_ld(data, func):
     bs_sample = np.random.choice(data, len(data))
     return func(bs_sample)
 
-if __name__ == '__main__':
+'''
+Function to plot diagram for different properties
+'''
+def PlotDistributionDiagramForProperty(vehiclePropery, x='WGTCDTR_D', y='ORIGAVTW', xlabel='', ylabel='Original Average Track Width'):
+    #vp = sns.boxplot(x=x, y=y, data=vehiclePropery)
+    vp = sns.violinplot(x=x, y=y, data=vehiclePropery)
+    #vp = sns.violinplot(x='WGTCDTR_D', y='ORIGAVTW', data=vehiclePropery, inner=None,color='lightgray')
+    #sp = sns.stripplot(x='WGTCDTR_D', y='ORIGAVTW', data=vehiclePropery, size=4, jitter=True)
+    vp.set_title('{0} of Different Vehicle Type'.format(ylabel))
+    vp.set_xlabel(xlabel)
+    vp.set_ylabel(ylabel)
+    plt.show()    
+
+
+def StatisticFigure(vehiclePropery, x='WGTCDTR_D', y='ORIGAVTW'):
+    vehicleTypes = np.unique(vehiclePropery[x])
+
+    print('{0}'.format(y))
+    for v in vehicleTypes:
+        d = vehiclePropery[y][vehiclePropery[x] == v]
+        print('{0}: mean:{1}, std:{2}, median:{3}, min:{4}, max:{5}\r\n'.format(v, np.mean(d), np.std(d), np.median(d), np.min(d), np.max(d)))
+
+def ExtractVehiclePropertyForVehicleType(vehiclePropery, x='WGTCDTR_D', y='ORIGAVTW'):
+    vehicleTypes = np.unique(vehiclePropery[x])
+
+    yList = {}
+    for v in vehicleTypes:
+        yList[v] = vehiclePropery[y][vehiclePropery[x] == v]
+    return yList
+
+'''
+Remove 0 rows
+'''
+def ReplaceZeroToNanRows(df, colName):
+    df[colName].replace(0, np.nan, inplace=True)    
+    return df
+
+'''
+Perform variable estimation based on input data and reutrn 3 variables for Passenger Car, Light Truck and Heavy Truck respectively.
+    Expecting data frame in following columns:
+        Accident Type,MAIS,PassengerCar_Count,PassengerCar_%,LightTruck_Count,LightTruck_%,HeavyTruck_Count,HeavyTruck_%
+    Output: a, b, c
+        Where a indicate the % for LT for Passenger car estimation, (1-a) incidate teh % for HT for Car
+              b indicate the % for Car for LT, and (a-b) for HT on LT
+              c indicate the % for Car for HT and (1-c) for LT on HT
+'''
+def EstimationBasedOnErrorRate(df, car='PassengerCar_%', LT='LightTruck_%', HT='HeavyTruck_%'):
+    a = 0.5
+
+'''
+Function to plot box diagram for different vehicle validations.
+'''
+def EstimationValidation(bootscrap_size=10000):
     wilcoxonData = pd.read_csv('WilcoxonData.csv')
 
     print(wilcoxonData['HT - % diff Car'])
     Wilcoxon_From_ComparedList(wilcoxonData['HT - % diff Car'])
 
-    BS_Size = 10000
+    BS_Size = bootscrap_size
     HT_C_BS = np.empty(BS_Size)
     HT_L_BS = np.empty(BS_Size)
 
@@ -114,25 +166,183 @@ if __name__ == '__main__':
     bx.set_xlabel('Estimation better than different vehicle')
     bx.set_title('Passenger Car Validations (bootstrap 10000)')
     plt.show()
+
+'''
+Function to estimate later half of relationship with earlier half of data.
+'''
+def EstimateCoefficient():
+    vehiclePropery = pd.read_csv('vehcileProperies.csv')
+    #PlotDistributionDiagramForProperty(vehiclePropery,  x='WGTCDTR_D', y='ORIGAVTW', xlabel='', ylabel='Original Average Track Width')
+    #PlotDistributionDiagramForProperty(vehiclePropery,  x='WGTCDTR_D', y='WHEELBAS', xlabel='', ylabel='Original Wheelbase')
+    #PlotDistributionDiagramForProperty(vehiclePropery,  x='WGTCDTR_D', y='RATWGT', xlabel='', ylabel='Ratio Inflation Factor')
+    StatisticFigure(vehiclePropery,  x='WGTCDTR_D', y='ORIGAVTW')
+    StatisticFigure(vehiclePropery,  x='WGTCDTR_D', y='WHEELBAS')
+    StatisticFigure(vehiclePropery,  x='WGTCDTR_D', y='RATWGT')
+
+def StratifyData(dataInDict, func, min=0, max=100, bins=50):
+    retDict = {}
+    rang = (max-min)/bins    
+    for key,value in dataInDict.items():
+        currMin = min
+        currMax = min + rang
+        retDict[key] = {}
+        for i in range(bins):            
+            v = value[np.logical_and(value>currMin, value<= currMax)]
+            retDict[key]['{0} - {1}'.format(currMin, currMax)] = func(v)
+            currMin = currMax
+            currMax = currMax + rang
+
+    return retDict;
+
+def CalculateEstimationForFeatureStratify(stratifyData, car, lt, ht, car_LT_ratio, car_HT_ratio, LT_car_ratio, LT_HT_ratio, HT_car_ratio, HT_LT_ratio, car_offset, LT_offset, HT_offset):
+    carEst = 'Car Est'
+    LTEst = 'Light Truck Est'
+    HTEst = 'Heavy Truck Est'
+    betterLT = '{0} : LT'
+    betterHT = '{0} : HT'
+    betterCar = '{0} : Car'
+    stratifyData[carEst] = {}
+    stratifyData[LTEst] = {}
+    stratifyData[HTEst] = {}
+
+    stratifyData[betterLT.format(carEst)] = {}
+    stratifyData[betterHT.format(carEst)] = {}
+    stratifyData[betterCar.format(LTEst)] = {}
+    stratifyData[betterHT.format(LTEst)]= {}
+    stratifyData[betterLT.format(HTEst)] = {}
+    stratifyData[betterCar.format(HTEst)] = {}
+
+    # Because the len of all 3 differnt type is the same, so we can only iterate once and will calculate all items.
+    for key, item in stratifyData[car].items():
+        if stratifyData[car][key] == stratifyData[car][key] and stratifyData[lt][key] == stratifyData[lt][key] and stratifyData[ht][key] == stratifyData[ht][key]:
+            stratifyData[carEst][key] = car_LT_ratio * stratifyData[lt][key] + car_HT_ratio * stratifyData[ht][key] + car_offset
+            stratifyData[LTEst][key] = LT_car_ratio * stratifyData[car][key] + LT_HT_ratio * stratifyData[ht][key] + LT_offset
+            stratifyData[HTEst][key] = HT_LT_ratio * stratifyData[lt][key] + HT_car_ratio * stratifyData[car][key] + HT_offset
+
+            stratifyData[betterLT.format(carEst)][key] = stratifyData[carEst][key] - stratifyData[car][key] - (stratifyData[lt][key] - stratifyData[carEst][key])
+            stratifyData[betterHT.format(carEst)][key] = stratifyData[carEst][key] - stratifyData[car][key] - (stratifyData[ht][key] - stratifyData[carEst][key])
+
+            stratifyData[betterCar.format(LTEst)][key] = stratifyData[LTEst][key] - stratifyData[lt][key] - (stratifyData[car][key] - stratifyData[lt][key])
+            stratifyData[betterHT.format(LTEst)][key] = stratifyData[LTEst][key] - stratifyData[lt][key] - (stratifyData[ht][key] - stratifyData[lt][key])
+
+            stratifyData[betterLT.format(HTEst)][key] = stratifyData[HTEst][key] - stratifyData[ht][key] - (stratifyData[lt][key] - stratifyData[ht][key])
+            stratifyData[betterCar.format(HTEst)][key] = stratifyData[HTEst][key] - stratifyData[ht][key] - (stratifyData[car][key] - stratifyData[ht][key])
+        else:
+            stratifyData[carEst][key] =  np.nan
+            stratifyData[LTEst][key] =   np.nan
+            stratifyData[HTEst][key] =   np.nan
+
+            stratifyData[betterLT.format(carEst)][key] =  np.nan
+            stratifyData[betterHT.format(carEst)][key] =  np.nan
+            stratifyData[betterCar.format(LTEst)][key] =  np.nan
+            stratifyData[betterHT.format(LTEst)][key] =  np.nan
+            stratifyData[betterLT.format(HTEst)][key] =  np.nan
+            stratifyData[betterCar.format(HTEst)][key] =  np.nan
+
+    return carEst, LTEst, HTEst, stratifyData
+
+'''
+Function to test estimation with selected data
+'''
+def ValidateSelectedData():
+    SelData = pd.read_csv('selected_result.csv')
     
-    #sns.boxplot(data=HT_C_BS)
-    #sns.boxplot(data=HT_L_BS)
+    # Remove the 0s from the data, we need all the necessary data for given accident type. If there are no full data for accident type, then we need to remove the cases.
+    ReplaceZeroToNanRows(SelData, 'PassengerCar_Count')
+    ReplaceZeroToNanRows(SelData, 'LightTruck_Count')
+    ReplaceZeroToNanRows(SelData, 'HeavyTruck_Count')
 
-    #f,axes = plt.subplots(1,2)
-    #axes[0].set_title('Estimaton better than Passenger Car basline')
-    #sns.boxplot(data=LT_C_BS, ax=axes[0])
-       
-    #sns.boxplot(data=LT_H_BS, ax=axes[1])
-    #axes[1].set_title('Estimaton better than Heavy Truck basline')
-    #plt.suptitle('Light Truck')
+    nonEmptyAccType = []
+    uniAccType = pd.unique(SelData['Accident Type'])
+    for ac in uniAccType:
+        accType = SelData.loc[SelData['Accident Type'] == ac]   
+        nullSum = accType.isnull().sum()
+        #print('Accident Type {0}: {1}, null: {2}, totalnull: {3}'.format(ac, len(accType), nullSum, nullSum.sum()))
 
-    #sns.boxplot(data=C_LT_BS)
-    #sns.boxplot(data=C_HT_BS)
+        # As only 3 columns are replaced 0 with Nan, and there are total 8 MAIS per accident type, so it will be 24 if all 3 are nan.
+        if(nullSum.sum() < 24): 
+            nonEmptyAccType.append(ac)
+    print(nonEmptyAccType)
 
+    SelectedData = SelData[SelData['Accident Type'].isin(nonEmptyAccType)]
+    #SelectedData.to_csv('cleaned_csv.csv')
+    print(SelectedData)
+    #SelData.dropna(subset=['PassengerCar_Count', 'LightTruck_Count', 'HeavyTruck_Count'], inplace=True)
+    ##SelData.to_csv('cleaned_csv.csv')
+    #uniAccType = pd.unique(SelData['Accident Type'])
+    #for ac in uniAccType:
+    #    print('Accident Type {0}: {1}'.format(ac, len(SelData.loc[SelData['Accident Type'] == ac])))
+    #print(uniAccType)
+
+def CoefficientValidation():
+    vehiclePropery = pd.read_csv('vehcileProperies.csv')
+    car = 'Passenger Vehicle'
+    lt = '6000 lbs & Under'
+    ht = '6001-10000 Lbs'
+
+    avTwFullList = ExtractVehiclePropertyForVehicleType(vehiclePropery)
+    wheelbaseFullist = ExtractVehiclePropertyForVehicleType(vehiclePropery, y='WHEELBAS')
+    
+    stratifyDataAVT = StratifyData(avTwFullList, np.mean, min=100, max=190, bins=20)
+    stratifyDataWhl = StratifyData(wheelbaseFullist, np.mean, min=200, max=450, bins=20)
+
+    car_LT_ratio = 0.9
+    car_HT_ratio = 0.1
+
+    LT_car_ratio = 0.9
+    LT_HT_ratio  = 0.1
+
+    HT_car_ratio = 0.5
+    HT_LT_ratio = 0.5
+
+    car_offsetAvt = -3
+    lt_offsetAvt = -0.36
+    ht_offsetAvt = -15.5
+
+    car_offsetWB = -20
+    lt_offsetWB = -8.5
+    ht_offsetWB = -58.7
+
+    #car_offsetAvt = 0
+    #lt_offsetAvt = 0
+    #ht_offsetAvt = 0
+
+    #car_offsetWB = 0
+    #lt_offsetWB = 0
+    #ht_offsetWB = 0
+
+    carEst, LTEst, HTEst, calculatedDataAVT = CalculateEstimationForFeatureStratify(stratifyDataAVT, car, lt, ht, 
+                                                                                 car_LT_ratio, car_HT_ratio, 
+                                                                                 LT_car_ratio, LT_HT_ratio, 
+                                                                                 HT_car_ratio, HT_LT_ratio,
+                                                                                 car_offsetAvt, lt_offsetAvt, ht_offsetAvt)
+
+    carEst, LTEst, HTEst, calculatedDataWB = CalculateEstimationForFeatureStratify(stratifyDataWhl, car, lt, ht, 
+                                                                                 car_LT_ratio, car_HT_ratio, 
+                                                                                 LT_car_ratio, LT_HT_ratio, 
+                                                                                 HT_car_ratio, HT_LT_ratio,
+                                                                                 car_offsetWB, lt_offsetWB, ht_offsetWB)
+
+    #list = [value for key, value in calculatedDataAVT.items() if ':' in key]
+    wilcoxAvt = {}
+    wilcoxWB = {}
+
+    for key in calculatedDataAVT:
+        if ':' in key:
+            wilcoxAvt[key] = pd.DataFrame(calculatedDataAVT[key], index=[0])
+            wilcoxWB[key] = pd.DataFrame(calculatedDataWB[key], index=[0])
+            print(key)            
+            wlist = wilcoxAvt[key].iloc[0].dropna()
+            Wilcoxon_From_ComparedList(wlist)
+            #print(wlist)
     
 
-    
+    print('haha')
+     
+if __name__ == '__main__':
+    #EstimateCoefficient()
+    #EstimationValidation()
 
-
-
-
+    #ValidateSelectedData()
+   
+    CoefficientValidation()
