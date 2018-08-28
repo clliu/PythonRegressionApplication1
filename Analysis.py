@@ -120,28 +120,37 @@ def EstimationValidation(bootscrap_size=10000):
     BS_Size = bootscrap_size
     HT_C_BS = np.empty(BS_Size)
     HT_L_BS = np.empty(BS_Size)
+    HT_A_BS = np.empty(BS_Size)
 
     LT_C_BS = np.empty(BS_Size)
     LT_H_BS = np.empty(BS_Size)
+    LT_A_BS = np.empty(BS_Size)
 
     C_LT_BS = np.empty(BS_Size)
     C_HT_BS = np.empty(BS_Size)
+    C_A_BS = np.empty(BS_Size)
 
     for i in range(BS_Size):
         HT_C_BS[i] = bootstrap_replicate_ld(wilcoxonData['HT - % diff Car'], Wilcoxon_From_ComparedList)
         HT_L_BS[i] = bootstrap_replicate_ld(wilcoxonData['HT - % diff LT'], Wilcoxon_From_ComparedList)
+        HT_A_BS[i] = bootstrap_replicate_ld(wilcoxonData['HT - % diff AVG'], Wilcoxon_From_ComparedList)
 
         LT_C_BS[i] = bootstrap_replicate_ld(wilcoxonData['LT - % diff Car'], Wilcoxon_From_ComparedList)
         LT_H_BS[i] = bootstrap_replicate_ld(wilcoxonData['LT - % diff HT'], Wilcoxon_From_ComparedList)
+        LT_A_BS[i] = bootstrap_replicate_ld(wilcoxonData['LT - % diff AVG'], Wilcoxon_From_ComparedList)
 
         C_LT_BS[i] = bootstrap_replicate_ld(wilcoxonData['Car - % diff LT'], Wilcoxon_From_ComparedList)
         C_HT_BS[i] = bootstrap_replicate_ld(wilcoxonData['Car - % diff HT'], Wilcoxon_From_ComparedList)
+        C_A_BS[i] = bootstrap_replicate_ld(wilcoxonData['Car - % diff AVG'], Wilcoxon_From_ComparedList)
 
     finalData = pd.DataFrame(HT_C_BS, columns=['z'])
     finalData['experiment'] = 'Est result better than Car'
     ltData = pd.DataFrame(HT_L_BS, columns=['z'])
     ltData['experiment'] = 'Est result better than Light Truck'
     finalData = finalData.append(ltData)
+    avgData = pd.DataFrame(HT_A_BS, columns=['z'])
+    avgData['experiment'] = 'Est result better than Average'
+    finalData = finalData.append(avgData)
     bx = sns.boxplot(x='experiment', y='z', data=finalData)
     bx.set_xlabel('Compare to different vehicles as baseline')
     bx.set_title('Heavy Truck Validations (bootstrap 10000)')
@@ -152,6 +161,9 @@ def EstimationValidation(bootscrap_size=10000):
     ltData = pd.DataFrame(LT_H_BS, columns=['z'])
     ltData['experiment'] = 'Est result better than Heavy Truck'
     finalData = finalData.append(ltData)
+    avgData = pd.DataFrame(LT_A_BS, columns=['z'])
+    avgData['experiment'] = 'Est result better than Average'
+    finalData = finalData.append(avgData)
     bx = sns.boxplot(x='experiment', y='z', data=finalData)
     bx.set_xlabel('Estimation better than different vehicle')
     bx.set_title('Light Truck Validations (bootstrap 10000)')
@@ -162,6 +174,9 @@ def EstimationValidation(bootscrap_size=10000):
     ltData = pd.DataFrame(C_HT_BS, columns=['z'])
     ltData['experiment'] = 'Est result better than Heavy Truck'
     finalData = finalData.append(ltData)
+    avgData = pd.DataFrame(C_A_BS, columns=['z'])
+    avgData['experiment'] = 'Est result better than Average'
+    finalData = finalData.append(avgData)
     bx = sns.boxplot(x='experiment', y='z', data=finalData)
     bx.set_xlabel('Estimation better than different vehicle')
     bx.set_title('Passenger Car Validations (bootstrap 10000)')
@@ -295,21 +310,21 @@ def CoefficientValidation():
     HT_car_ratio = 0.5
     HT_LT_ratio = 0.5
 
-    car_offsetAvt = -3
-    lt_offsetAvt = -0.36
-    ht_offsetAvt = -15.5
+    #car_offsetAvt = -3
+    #lt_offsetAvt = -0.36
+    #ht_offsetAvt = -15.5
 
-    car_offsetWB = -20
-    lt_offsetWB = -8.5
-    ht_offsetWB = -58.7
+    #car_offsetWB = -20
+    #lt_offsetWB = -8.5
+    #ht_offsetWB = -58.7
 
-    #car_offsetAvt = 0
-    #lt_offsetAvt = 0
-    #ht_offsetAvt = 0
+    car_offsetAvt = 0
+    lt_offsetAvt = 0
+    ht_offsetAvt = 0
 
-    #car_offsetWB = 0
-    #lt_offsetWB = 0
-    #ht_offsetWB = 0
+    car_offsetWB = 0
+    lt_offsetWB = 0
+    ht_offsetWB = 0
 
     carEst, LTEst, HTEst, calculatedDataAVT = CalculateEstimationForFeatureStratify(stratifyDataAVT, car, lt, ht, 
                                                                                  car_LT_ratio, car_HT_ratio, 
@@ -327,22 +342,35 @@ def CoefficientValidation():
     wilcoxAvt = {}
     wilcoxWB = {}
 
+    print('AVT')
     for key in calculatedDataAVT:
         if ':' in key:
             wilcoxAvt[key] = pd.DataFrame(calculatedDataAVT[key], index=[0])
-            wilcoxWB[key] = pd.DataFrame(calculatedDataWB[key], index=[0])
             print(key)            
             wlist = wilcoxAvt[key].iloc[0].dropna()
             Wilcoxon_From_ComparedList(wlist)
             #print(wlist)
     
+    print('Wheelbase')        
+    for key in calculatedDataAVT:
+        if ':' in key:
+            wilcoxWB[key] = pd.DataFrame(calculatedDataWB[key], index=[0])
+            print(key)            
+            wlist = wilcoxWB[key].iloc[0].dropna()
+            Wilcoxon_From_ComparedList(wlist)
+            
+            
 
     print('haha')
+
+
      
 if __name__ == '__main__':
     #EstimateCoefficient()
-    #EstimationValidation()
+    EstimationValidation()
 
     #ValidateSelectedData()
    
-    CoefficientValidation()
+    #CoefficientValidation()
+
+    
